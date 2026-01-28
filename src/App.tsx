@@ -1,5 +1,5 @@
 import { useState } from "react";
-import Tesseract from "tesseract.js";
+import  Tesseract from "tesseract.js";
 import type { Person, Item } from "./types";
 
 function App() {

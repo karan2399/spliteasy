@@ -11,8 +11,10 @@
     /* Bundler mode */
     "moduleResolution": "node",
     "allowImportingTsExtensions": true,
+    "allowSyntheticDefaultImports": true,
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
+    "esModuleInterop": true,
     "noEmit": true,
     "jsx": "react-jsx",
 
