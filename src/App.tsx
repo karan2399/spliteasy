@@ -1,6 +1,10 @@
 import { useState } from "react";
 import Tesseract from "tesseract.js";
 import type { Person, Item } from "./types";
+import * as pdfjsLib from "pdfjs-dist";
+import pdfWorker from "pdfjs-dist/build/pdf.worker?url";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 function App() {
   const [people, setPeople] = useState<Person[]>([]);
@@ -66,10 +70,19 @@ function App() {
 
   // OCR Handler
   const handleReceiptUpload = async (file: File) => {
-    const { data } = await Tesseract.recognize(file, "eng");
-    const text = data.text;
-    parseReceiptText(text);
+    let imageSource: File | HTMLCanvasElement = file;
+  
+    // If PDF → convert to image first
+    if (file.type === "application/pdf") {
+      const canvas = await extractImageFromPDF(file);
+      imageSource = canvas;
+    }
+  
+    const { data } = await Tesseract.recognize(imageSource, "eng");
+    parseReceiptText(data.text);
   };
+  
+
   const parseReceiptText = (text: string) => {
     const lines = text.split("\n");
     const newItems: Item[] = [];
@@ -120,6 +133,30 @@ function App() {
   const calcItemTotal = (item: Item) => {
     return calcItemBase(item) + calcItemTax(item);
   };
+
+  const extractImageFromPDF = async (file: File): Promise<HTMLCanvasElement> => {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  
+    // Only first page (most receipts are 1 page)
+    const page = await pdf.getPage(1);
+  
+    const scale = 2; // higher = better OCR accuracy
+    const viewport = page.getViewport({ scale });
+  
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d")!;
+    canvas.height = viewport.height;
+    canvas.width = viewport.width;
+  
+    await page.render({
+      canvasContext: context,
+      viewport,
+    }).promise;
+  
+    return canvas;
+  };
+  
 
 
 
@@ -268,7 +305,7 @@ function App() {
           <h2 style={styles.sectionTitle}>Upload Receipt</h2>
           <input
             type="file"
-            accept="image/*"
+            accept="image/*,application/pdf"
             onChange={async (e) => {
               if (!e.target.files) return;
               const file = e.target.files[0];
