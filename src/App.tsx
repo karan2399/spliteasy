@@ -1,5 +1,5 @@
 import { useState } from "react";
-import  Tesseract from "tesseract.js";
+import Tesseract from "tesseract.js";
 import type { Person, Item } from "./types";
 
 function App() {
@@ -25,6 +25,7 @@ function App() {
       {
         id: crypto.randomUUID(),
         name: itemName,
+        quantity: 1,
         price: parseFloat(itemPrice),
         taxPercent: 0,
         sharedBy: [],
@@ -38,18 +39,26 @@ function App() {
   const calculateTotals = () => {
     const totals: Record<string, number> = {};
     people.forEach((p) => (totals[p.id] = 0));
+
     items.forEach((item) => {
       if (item.sharedBy.length === 0) return;
-      const finalPrice = item.price + (item.price * item.taxPercent) / 100;
+
+      const base = item.price * item.quantity;
+      const finalPrice = base + (base * item.taxPercent) / 100;
       const split = finalPrice / item.sharedBy.length;
-      item.sharedBy.forEach((pid) => (totals[pid] += split));
+
+      item.sharedBy.forEach((pid) => {
+        totals[pid] += split;
+      });
     });
+
     return totals;
   };
 
   const calculateGrandTotal = () => {
     return items.reduce((total, item) => {
-      const finalPrice = item.price + (item.price * item.taxPercent) / 100;
+      const base = item.price * item.quantity;
+      const finalPrice = base + (base * item.taxPercent) / 100;
       return total + finalPrice;
     }, 0);
   };
@@ -61,32 +70,58 @@ function App() {
     const text = data.text;
     parseReceiptText(text);
   };
-
   const parseReceiptText = (text: string) => {
     const lines = text.split("\n");
     const newItems: Item[] = [];
+
     lines.forEach((line) => {
-      const match = line.match(/([a-zA-Z\s]+)\s+(\d+(\.\d{1,2})?)/);
+      // Only match prices that appear AFTER $
+      const match = line.match(/([a-zA-Z\s]+)\s*\$\s*(\d+(\.\d{1,2})?)/);
+
       if (match) {
         const name = match[1].trim();
         const price = parseFloat(match[2]);
+
         if (name && !isNaN(price)) {
           newItems.push({
             id: crypto.randomUUID(),
             name,
             price,
+            quantity: 1,
             taxPercent: 0,
             sharedBy: [],
           });
         }
       }
     });
+
     if (newItems.length > 0) {
       setItems((prev) => [...prev, ...newItems]);
     } else {
       alert("No items detected. Please check receipt or type manually.");
     }
   };
+
+  const safeNum = (n: any, fallback = 0) =>
+    typeof n === "number" && !isNaN(n) ? n : fallback;
+
+  const calcItemBase = (item: Item) => {
+    const price = safeNum(item.price);
+    const qty = safeNum(item.quantity, 1);
+    return price * qty;
+  };
+
+  const calcItemTax = (item: Item) => {
+    const base = calcItemBase(item);
+    const tax = safeNum(item.taxPercent);
+    return (base * tax) / 100;
+  };
+
+  const calcItemTotal = (item: Item) => {
+    return calcItemBase(item) + calcItemTax(item);
+  };
+
+
 
   return (
     <div style={styles.page}>
@@ -141,9 +176,21 @@ function App() {
           {items.map((item) => (
             <div key={item.id} style={styles.itemCard}>
               <div style={styles.itemHeader}>
-                <span>{item.name}</span>
-                <span>${item.price.toFixed(2)}</span>
+                <div>
+                  <div style={{ fontWeight: 700 }}>{item.name}</div>
+                  <div style={{ fontSize: 12, color: "#333" }}>
+                    Base: ${calcItemBase(item).toFixed(2)}
+                  </div>
+                  <div style={{ fontSize: 12, color: "#333" }}>
+                    Tax ({item.taxPercent}%): ${calcItemTax(item).toFixed(2)}
+                  </div>
+                </div>
+
+                <div style={{ fontWeight: 700 }}>
+                  ${calcItemTotal(item).toFixed(2)}
+                </div>
               </div>
+
 
               <div style={styles.row}>
                 <label>
@@ -165,6 +212,26 @@ function App() {
                     <option value={13}>13%</option>
                     <option value={15}>15%</option>
                     <option value={18}>18%</option>
+                  </select>
+                </label>
+
+                <label>
+                  Qty:
+                  <select
+                    style={styles.select}
+                    value={item.quantity}
+                    onChange={(e) => {
+                      const qty = parseInt(e.target.value);
+                      setItems(
+                        items.map((i) =>
+                          i.id === item.id ? { ...i, quantity: qty } : i
+                        )
+                      );
+                    }}
+                  >
+                    {[1, 2, 3, 4, 5].map(n => (
+                      <option key={n} value={n}>{n}</option>
+                    ))}
                   </select>
                 </label>
 
