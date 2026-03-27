@@ -1,5 +1,4 @@
 import { useState } from "react";
-import Tesseract from "tesseract.js";
 import type { Person, Item } from "./types";
 import * as pdfjsLib from "pdfjs-dist";
 import pdfWorker from "pdfjs-dist/build/pdf.worker?url";
@@ -74,52 +73,6 @@ function App() {
   };
 
 
-  // OCR Handler
-  const handleReceiptUpload = async (file: File) => {
-    // let imageSource: File | HTMLCanvasElement = file;
-
-    // If PDF → convert to image first
-    // if (file.type === "application/pdf") {
-    //   const canvas = await extractImageFromPDF(file);
-    //   imageSource = canvas;
-    // }
-
-    // const { data } = await Tesseract.recognize(imageSource, "eng");
-    // parseReceiptText(data.text);
-  };
-
-
-  const parseReceiptText = (text: string) => {
-    const lines = text.split("\n");
-    const newItems: Item[] = [];
-
-    lines.forEach((line) => {
-      // Only match prices that appear AFTER $
-      const match = line.match(/([a-zA-Z\s]+)\s*\$\s*(\d+(\.\d{1,2})?)/);
-
-      if (match) {
-        const name = match[1].trim();
-        const price = parseFloat(match[2]);
-
-        if (name && !isNaN(price)) {
-          newItems.push({
-            id: crypto.randomUUID(),
-            name,
-            price,
-            quantity: 1,
-            taxPercent: 0,
-            sharedBy: [],
-          });
-        }
-      }
-    });
-
-    if (newItems.length > 0) {
-      setItems((prev) => [...prev, ...newItems]);
-    } else {
-      alert("No items detected. Please check receipt or type manually.");
-    }
-  };
 
   const safeNum = (n: any, fallback = 0) =>
     typeof n === "number" && !isNaN(n) ? n : fallback;
@@ -294,19 +247,6 @@ function App() {
           ))}
         </div>
 
-        {/* Receipt Upload */}
-        <div style={styles.section}>
-          <h2 style={styles.sectionTitle}>Upload Receipt</h2>
-          <input
-            type="file"
-            accept="image/*,application/pdf"
-            onChange={async (e) => {
-              if (!e.target.files) return;
-              const file = e.target.files[0];
-              await handleReceiptUpload(file);
-            }}
-          />
-        </div>
 
         {/* Summary */}
         <div style={styles.section}>
