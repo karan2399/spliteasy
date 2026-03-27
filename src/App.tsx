@@ -76,16 +76,16 @@ function App() {
 
   // OCR Handler
   const handleReceiptUpload = async (file: File) => {
-    let imageSource: File | HTMLCanvasElement = file;
+    // let imageSource: File | HTMLCanvasElement = file;
 
     // If PDF → convert to image first
-    if (file.type === "application/pdf") {
-      const canvas = await extractImageFromPDF(file);
-      imageSource = canvas;
-    }
+    // if (file.type === "application/pdf") {
+    //   const canvas = await extractImageFromPDF(file);
+    //   imageSource = canvas;
+    // }
 
-    const { data } = await Tesseract.recognize(imageSource, "eng");
-    parseReceiptText(data.text);
+    // const { data } = await Tesseract.recognize(imageSource, "eng");
+    // parseReceiptText(data.text);
   };
 
 
@@ -140,23 +140,7 @@ function App() {
     return calcItemBase(item) + calcItemTax(item);
   };
 
-  const extractImageFromPDF = async (file: File): Promise<HTMLCanvasElement> => {
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 
-    // Only first page (most receipts are 1 page)
-    const page = await pdf.getPage(1);
-
-    const scale = 2; // higher = better OCR accuracy
-    const viewport = page.getViewport({ scale });
-
-    const canvas = document.createElement("canvas");
-    const context = canvas.getContext("2d")!;
-    canvas.height = viewport.height;
-    canvas.width = viewport.width;
-
-    return canvas;
-  };
 
 
 
