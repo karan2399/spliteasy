@@ -38,6 +38,12 @@ function App() {
     setItemName("");
     setItemPrice("");
   };
+  const deleteItem = (id: string) => {
+    const confirmDelete = window.confirm("Delete this item?");
+    if (!confirmDelete) return;
+  
+    setItems((prev) => prev.filter((item) => item.id !== id));
+  };
 
   // Calculate Split Totals
   const calculateTotals = () => {
@@ -71,17 +77,17 @@ function App() {
   // OCR Handler
   const handleReceiptUpload = async (file: File) => {
     let imageSource: File | HTMLCanvasElement = file;
-  
+
     // If PDF → convert to image first
     if (file.type === "application/pdf") {
       const canvas = await extractImageFromPDF(file);
       imageSource = canvas;
     }
-  
+
     const { data } = await Tesseract.recognize(imageSource, "eng");
     parseReceiptText(data.text);
   };
-  
+
 
   const parseReceiptText = (text: string) => {
     const lines = text.split("\n");
@@ -137,26 +143,26 @@ function App() {
   const extractImageFromPDF = async (file: File): Promise<HTMLCanvasElement> => {
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  
+
     // Only first page (most receipts are 1 page)
     const page = await pdf.getPage(1);
-  
+
     const scale = 2; // higher = better OCR accuracy
     const viewport = page.getViewport({ scale });
-  
+
     const canvas = document.createElement("canvas");
     const context = canvas.getContext("2d")!;
     canvas.height = viewport.height;
     canvas.width = viewport.width;
-  
+
     await page.render({
       canvasContext: context,
       viewport,
     }).promise;
-  
+
     return canvas;
   };
-  
+
 
 
 
@@ -223,11 +229,20 @@ function App() {
                   </div>
                 </div>
 
-                <div style={{ fontWeight: 700 }}>
-                  ${calcItemTotal(item).toFixed(2)}
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ fontWeight: 700 }}>
+                    ${calcItemTotal(item).toFixed(2)}
+                  </div>
+
+                  {/* X Delete Button */}
+                  <button
+                    onClick={() => deleteItem(item.id)}
+                    style={styles.deleteBtn}
+                  >
+                    ❌
+                  </button>
                 </div>
               </div>
-
 
               <div style={styles.row}>
                 <label>
@@ -421,14 +436,19 @@ const styles: Record<string, React.CSSProperties> = {
   itemHeader: {
     display: "flex",
     justifyContent: "space-between",
-    fontWeight: 600,
-    marginBottom: 12,
+    alignItems: "center",
   },
   summary: {
     padding: 8,
     fontWeight: "bold",
     borderBottom: "1px solid #e5e7eb",
     color: "#000",
+  },
+  deleteBtn: {
+    background: "transparent",
+    border: "none",
+    cursor: "pointer",
+    fontSize: 18,
   },
 };
 
